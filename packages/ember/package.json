@@ -1,7 +1,7 @@
 {
   "name": "@warp-drive/ember",
   "description": "Data bindings and utilities for Ember applications using WarpDrive",
-  "version": "0.0.0-alpha.90",
+  "version": "5.4.0-alpha.135",
   "license": "MIT",
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
   "repository": {
@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "_lint": "eslint . --quiet --cache --cache-strategy=content",
-    "build:glint": "glint --build",
+    "build:glint": "glint && glint --build",
     "build:pkg": "vite build;",
     "prepack": "bun run build:pkg",
     "sync-hardlinks": "bun run sync-dependencies-meta-injected"
@@ -46,12 +46,12 @@
     "@ember-data/request": "^4.12.7 || > 5.3.3",
     "@ember-data/request-utils": "^4.12.7 || > 5.3.3",
     "@warp-drive/core-types": "workspace:*",
-    "ember-provide-consume-context": "^0.5.0",
+    "ember-provide-consume-context": "^0.7.0",
     "@ember-data/tracking": "^4.12.7 || > 5.3.3"
   },
   "dependencies": {
     "@ember/test-waiters": "^3.1.0 || ^4.0.0",
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "dependenciesMeta": {
@@ -92,23 +92,23 @@
     "@glint/environment-ember-loose": "1.5.0",
     "@glint/environment-ember-template-imports": "1.5.0",
     "@glint/template": "1.5.0",
-    "decorator-transforms": "^2.2.2",
-    "@embroider/addon-dev": "^4.3.1",
+    "decorator-transforms": "^2.3.0",
+    "@embroider/addon-dev": "^7.1.1",
     "@ember-data/request": "workspace:*",
     "@ember-data/request-utils": "workspace:*",
     "@ember-data/store": "workspace:*",
     "@ember-data/tracking": "workspace:*",
-    "@ember/test-helpers": "4.0.4",
+    "@ember/test-helpers": "5.1.0",
     "@warp-drive/core-types": "workspace:*",
     "@warp-drive/internal-config": "workspace:*",
     "babel-plugin-ember-template-compilation": "^2.2.5",
-    "ember-template-imports": "^4.1.3",
+    "ember-template-imports": "^4.3.0",
     "ember-source": "~5.12.0",
     "pnpm-sync-dependencies-meta-injected": "0.0.14",
     "rollup": "^4.17.2",
     "typescript": "^5.7.2",
     "vite": "^5.2.11",
-    "ember-provide-consume-context": "^0.5.0"
+    "ember-provide-consume-context": "^0.7.0"
   },
   "engines": {
     "node": ">= 18.20.4"

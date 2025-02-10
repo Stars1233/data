@@ -1,6 +1,6 @@
 {
   "name": "@warp-drive/schema-record",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.135",
   "description": "Schema Driven Resource Presentation for WarpDrive and EmberData",
   "keywords": [
     "ember-addon"
@@ -78,7 +78,7 @@
     }
   },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "devDependencies": {

@@ -162,10 +162,25 @@ export class Graph {
     assert(`Cannot getData() on an implicit relationship`, !isImplicit(relationship));
 
     if (isBelongsTo(relationship)) {
-      return legacyGetResourceRelationshipData(relationship);
+      return legacyGetResourceRelationshipData(relationship, false);
     }
 
-    return legacyGetCollectionRelationshipData(relationship);
+    return legacyGetCollectionRelationshipData(relationship, false);
+  }
+
+  getRemoteData(
+    identifier: StableRecordIdentifier,
+    propertyName: string
+  ): ResourceRelationship | CollectionRelationship {
+    const relationship = this.get(identifier, propertyName);
+
+    assert(`Cannot getRemoteData() on an implicit relationship`, !isImplicit(relationship));
+
+    if (isBelongsTo(relationship)) {
+      return legacyGetResourceRelationshipData(relationship, true);
+    }
+
+    return legacyGetCollectionRelationshipData(relationship, true);
   }
 
   /*
@@ -334,7 +349,7 @@ export class Graph {
             additions: new Set(relationship.additions),
             removals: new Set(relationship.removals),
             remoteState: relationship.remoteState,
-            localState: legacyGetCollectionRelationshipData(relationship).data || [],
+            localState: legacyGetCollectionRelationshipData(relationship, false).data || [],
             reordered,
           });
         }
@@ -559,7 +574,7 @@ export class Graph {
     this._willSyncLocal = false;
     const updated = this._updatedRelationships;
     this._updatedRelationships = new Set();
-    updated.forEach((rel) => notifyChange(this, rel.identifier, rel.definition.key));
+    updated.forEach((rel) => notifyChange(this, rel));
   }
 
   destroy() {
@@ -641,7 +656,7 @@ function destroyRelationship(graph: Graph, rel: GraphEdge, silenceNotifications?
     // leave the ui relationship populated since the record is destroyed and
     // internally we've fully cleaned up.
     if (!rel.definition.isAsync && !silenceNotifications) {
-      /*#__NOINLINE__*/ notifyChange(graph, rel.identifier, rel.definition.key);
+      /*#__NOINLINE__*/ notifyChange(graph, rel);
     }
   }
 }
@@ -713,7 +728,7 @@ function removeDematerializedInverse(
     }
 
     if (!silenceNotifications) {
-      notifyChange(graph, relationship.identifier, relationship.definition.key);
+      notifyChange(graph, relationship);
     }
   } else {
     if (!relationship.definition.isAsync || (inverseIdentifier && isNew(inverseIdentifier))) {
@@ -728,7 +743,7 @@ function removeDematerializedInverse(
     }
 
     if (!silenceNotifications) {
-      notifyChange(graph, relationship.identifier, relationship.definition.key);
+      notifyChange(graph, relationship);
     }
   }
 }
@@ -753,7 +768,7 @@ function removeCompletelyFromInverse(graph: Graph, relationship: GraphEdge) {
     if (!relationship.definition.isAsync) {
       clearRelationship(relationship);
 
-      notifyChange(graph, relationship.identifier, relationship.definition.key);
+      notifyChange(graph, relationship);
     }
   } else {
     relationship.remoteMembers.clear();

@@ -1,7 +1,7 @@
 {
   "name": "@warp-drive/experiments",
   "description": "Experimental features for EmberData/WarpDrive",
-  "version": "0.0.1-alpha.128",
+  "version": "0.1.0-alpha.140",
   "license": "MIT",
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
   "repository": {
@@ -65,7 +65,7 @@
     }
   },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@ember-data/codemods",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "description": "Codemods for EmberData paradigms",
   "keywords": [],
   "repository": {
@@ -53,5 +53,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

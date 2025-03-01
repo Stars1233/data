@@ -1,6 +1,6 @@
 {
   "name": "@ember-data/store",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "description": "The core of EmberData. Provides the Store service which coordinates the cache with the network and presentation layers.",
   "keywords": [
     "ember-addon"
@@ -37,25 +37,8 @@
     "prepack": "bun run build:pkg",
     "sync-hardlinks": "bun run sync-dependencies-meta-injected"
   },
-  "dependenciesMeta": {
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "peerDependencies": {
@@ -76,7 +59,7 @@
     "@glimmer/component": "^1.1.2",
     "@warp-drive/core-types": "workspace:*",
     "@warp-drive/internal-config": "workspace:*",
-    "decorator-transforms": "^2.2.2",
+    "decorator-transforms": "^2.3.0",
     "ember-source": "~5.12.0",
     "expect-type": "^0.20.0",
     "pnpm-sync-dependencies-meta-injected": "0.0.14",
@@ -89,7 +72,7 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9",
+  "packageManager": "pnpm@10.5.2",
   "ember-addon": {
     "main": "addon-main.cjs",
     "type": "addon",

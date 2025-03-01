@@ -1,6 +1,6 @@
 {
   "name": "@ember-data/unpublished-test-infra",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "private": true,
   "description": "The default blueprint for ember-data private packages.",
   "keywords": [
@@ -41,32 +41,6 @@
     "prepack": "bun run build:pkg",
     "sync-hardlinks": "bun run sync-dependencies-meta-injected"
   },
-  "dependenciesMeta": {
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@warp-drive/diagnostic": {
-      "injected": true
-    },
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@ember-data/build-config": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "peerDependencies": {
     "ember-source": "3.28.12 || ^4.0.4 || ^5.0.0 || ^6.0.0",
     "qunit": "^2.20.1",
@@ -76,7 +50,7 @@
     "@ember-data/tracking": "workspace:*",
     "@warp-drive/diagnostic": "workspace:*",
     "@warp-drive/core-types": "workspace:*",
-    "@ember/test-helpers": "3.3.0 || ^4.0.4"
+    "@ember/test-helpers": "3.3.0 || ^4.0.4 || ^5.1.0"
   },
   "peerDependenciesMeta": {
     "qunit": {
@@ -90,7 +64,7 @@
     }
   },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "chalk": "^4.1.2",
     "qunit": "^2.20.1",
     "semver": "^7.6.3",
@@ -101,7 +75,7 @@
     "@babel/plugin-transform-typescript": "^7.24.5",
     "@babel/preset-env": "^7.24.5",
     "@babel/preset-typescript": "^7.24.1",
-    "@ember/test-helpers": "4.0.4",
+    "@ember/test-helpers": "5.1.0",
     "@glimmer/component": "^1.1.2",
     "@types/semver": "^7.5.8",
     "@types/qunit": "2.19.10",
@@ -133,5 +107,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@warp-drive/schema-record",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "description": "Schema Driven Resource Presentation for WarpDrive and EmberData",
   "keywords": [
     "ember-addon"
@@ -33,6 +33,10 @@
     "unstable-preview-types"
   ],
   "exports": {
+    ".": {
+      "types": "./unstable-preview-types/index.d.ts",
+      "default": "./dist/index.js"
+    },
     "./*": {
       "types": "./unstable-preview-types/*.d.ts",
       "default": "./dist/*.js"
@@ -51,34 +55,8 @@
       "optional": true
     }
   },
-  "dependenciesMeta": {
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@ember-data/model": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    },
-    "@ember-data/legacy-compat": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    }
-  },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "devDependencies": {
@@ -110,5 +88,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

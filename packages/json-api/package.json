@@ -1,6 +1,6 @@
 {
   "name": "@ember-data/json-api",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "description": "Provides a JSON:API document and resource cache implementation for EmberData",
   "keywords": [
     "ember-addon"
@@ -42,29 +42,6 @@
       "default": "./dist/*.js"
     }
   },
-  "dependenciesMeta": {
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@ember-data/graph": {
-      "injected": true
-    },
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "peerDependencies": {
     "@ember-data/graph": "workspace:*",
     "@ember-data/request-utils": "workspace:*",
@@ -72,7 +49,7 @@
     "@warp-drive/core-types": "workspace:*"
   },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "devDependencies": {
@@ -103,5 +80,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

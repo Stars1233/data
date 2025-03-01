@@ -1,7 +1,7 @@
 {
   "name": "@ember-data/request",
   "description": "⚡️ A simple, small and fast framework-agnostic library to make `fetch` happen",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "license": "MIT",
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
   "repository": {
@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@ember/test-waiters": "^3.1.0 || ^4.0.0",
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "devDependencies": {
@@ -59,14 +59,6 @@
     "pnpm-sync-dependencies-meta-injected": "0.0.14",
     "typescript": "^5.7.2",
     "vite": "^5.2.11"
-  },
-  "dependenciesMeta": {
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
   },
   "engines": {
     "node": ">= 18.20.4"

@@ -1,7 +1,7 @@
 {
   "name": "@ember-data/legacy-compat",
   "description": "Compatibility Shims for Older EmberData",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "license": "MIT",
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
   "repository": {
@@ -50,32 +50,6 @@
     "type": "addon",
     "version": 2
   },
-  "dependenciesMeta": {
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/graph": {
-      "injected": true
-    },
-    "@ember-data/json-api": {
-      "injected": true
-    },
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "peerDependenciesMeta": {
     "@ember-data/graph": {
       "optional": true
@@ -85,7 +59,7 @@
     }
   },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "peerDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@ember-data/adapter",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "description": "Provides Legacy JSON:API and REST Implementations of the Adapter Interface for use with @ember-data/store",
   "keywords": [
     "ember-addon"
@@ -54,37 +54,8 @@
     "@ember-data/request-utils": "workspace:*",
     "@warp-drive/core-types": "workspace:*"
   },
-  "dependenciesMeta": {
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@ember-data/legacy-compat": {
-      "injected": true
-    },
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@ember-data/graph": {
-      "injected": true
-    },
-    "@ember-data/json-api": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "ember-cli-test-info": "^1.0.0",
     "ember-cli-string-utils": "^1.1.0",
     "ember-cli-path-utils": "^1.0.0",
@@ -104,7 +75,7 @@
     "@ember-data/tracking": "workspace:*",
     "@ember/test-waiters": "^3.1.0",
     "@glimmer/component": "^1.1.2",
-    "decorator-transforms": "^2.2.2",
+    "decorator-transforms": "^2.3.0",
     "@types/jquery": "^3.5.30",
     "@warp-drive/core-types": "workspace:*",
     "@warp-drive/internal-config": "workspace:*",
@@ -119,5 +90,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

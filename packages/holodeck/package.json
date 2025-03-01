@@ -1,7 +1,7 @@
 {
   "name": "@warp-drive/holodeck",
   "description": "⚡️ Simple, Fast HTTP Mocking for Tests",
-  "version": "0.0.0-alpha.114",
+  "version": "0.0.0-alpha.126",
   "license": "MIT",
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
   "repository": {
@@ -23,7 +23,7 @@
   "dependencies": {
     "@hono/node-server": "^1.11.1",
     "chalk": "^5.3.0",
-    "hono": "^4.6.5"
+    "hono": "^4.7.0"
   },
   "type": "module",
   "files": [
@@ -80,14 +80,6 @@
     "./mock": {
       "types": "./unstable-preview-types/mock.d.ts",
       "default": "./dist/mock.js"
-    }
-  },
-  "dependenciesMeta": {
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@warp-drive/core-types": {
-      "injected": true
     }
   }
 }

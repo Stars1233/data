@@ -1,6 +1,6 @@
 {
   "name": "ember-data",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "description": "The lightweight reactive data library for JavaScript applications",
   "keywords": [
     "ember-addon"
@@ -66,47 +66,6 @@
   },
   "author": "",
   "license": "MIT",
-  "dependenciesMeta": {
-    "@ember-data/adapter": {
-      "injected": true
-    },
-    "@ember-data/graph": {
-      "injected": true
-    },
-    "@ember-data/debug": {
-      "injected": true
-    },
-    "@ember-data/model": {
-      "injected": true
-    },
-    "@ember-data/json-api": {
-      "injected": true
-    },
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@ember-data/legacy-compat": {
-      "injected": true
-    },
-    "@ember-data/serializer": {
-      "injected": true
-    },
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "dependencies": {
     "@ember-data/adapter": "workspace:*",
     "@ember-data/debug": "workspace:*",
@@ -120,13 +79,13 @@
     "@ember-data/store": "workspace:*",
     "@ember-data/tracking": "workspace:*",
     "@ember/edition-utils": "^1.2.0",
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/core-types": "workspace:*",
     "@warp-drive/build-config": "workspace:*"
   },
   "peerDependencies": {
     "ember-source": "3.28.12 || ^4.0.4 || ^5.0.0 || ^6.0.0",
-    "@ember/test-helpers": "^3.3.0 || ^4.0.4",
+    "@ember/test-helpers": "^3.3.0 || ^4.0.4 || ^5.1.0",
     "@ember/test-waiters": "^3.1.0 || ^4.0.0",
     "qunit": "^2.18.0"
   },
@@ -150,7 +109,7 @@
     "@glimmer/component": "^1.1.2",
     "@glimmer/tracking": "^1.1.2",
     "@types/qunit": "2.19.10",
-    "@ember/test-helpers": "4.0.4",
+    "@ember/test-helpers": "5.1.0",
     "@warp-drive/internal-config": "workspace:*",
     "ember-source": "~5.12.0",
     "eslint": "^9.12.0",
@@ -168,5 +127,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

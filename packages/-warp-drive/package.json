@@ -1,6 +1,6 @@
 {
   "name": "warp-drive",
-  "version": "0.1.0-alpha.51",
+  "version": "0.1.0-alpha.63",
   "private": false,
   "description": "WarpDrive is the data framework for ambitious web applications",
   "keywords": [
@@ -26,7 +26,8 @@
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
   "scripts": {
     "build:pkg": "vite build;",
-    "prepack": "bun run build:pkg"
+    "prepack": "bun run build:pkg",
+    "sync-hardlinks": "bun run sync-dependencies-meta-injected"
   },
   "bin": {
     "warp-drive": "./dist/warp-drive.js",
@@ -44,13 +45,8 @@
   ],
   "type": "module",
   "peerDependencies": {},
-  "dependenciesMeta": {
-    "@warp-drive/build-config": {
-      "injected": true
-    }
-  },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@manypkg/get-packages": "^2.2.2",
     "@warp-drive/build-config": "workspace:*",
     "semver": "^7.6.3",
@@ -73,5 +69,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

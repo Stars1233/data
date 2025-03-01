@@ -1,7 +1,7 @@
 {
   "name": "@ember-data/rest",
   "description": "REST Format Support for EmberData",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.140",
   "private": false,
   "license": "MIT",
   "author": "Chris Thoburn <runspired@users.noreply.github.com>",
@@ -22,7 +22,7 @@
     "extends": "../../package.json"
   },
   "dependencies": {
-    "@embroider/macros": "^1.16.6",
+    "@embroider/macros": "^1.16.10",
     "@warp-drive/build-config": "workspace:*"
   },
   "peerDependencies": {
@@ -75,25 +75,5 @@
   },
   "ember": {
     "edition": "octane"
-  },
-  "dependenciesMeta": {
-    "@warp-drive/core-types": {
-      "injected": true
-    },
-    "@ember-data/store": {
-      "injected": true
-    },
-    "@ember-data/request-utils": {
-      "injected": true
-    },
-    "@ember-data/request": {
-      "injected": true
-    },
-    "@ember-data/tracking": {
-      "injected": true
-    },
-    "@warp-drive/build-config": {
-      "injected": true
-    }
   }
 }

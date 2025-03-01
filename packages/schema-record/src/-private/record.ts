@@ -3,6 +3,7 @@ import { dependencySatisfies, importSync, macroCondition } from '@embroider/macr
 import type { MinimalLegacyRecord } from '@ember-data/model/-private/model-methods';
 import type Store from '@ember-data/store';
 import type { NotificationType } from '@ember-data/store';
+import type { RelatedCollection as ManyArray } from '@ember-data/store/-private';
 import { recordIdentifierFor, setRecordIdentifier } from '@ember-data/store/-private';
 import { addToTransaction, entangleSignal, getSignal, type Signal, Signals } from '@ember-data/tracking/-private';
 import { assert } from '@warp-drive/build-config/macros';
@@ -10,6 +11,7 @@ import type { StableRecordIdentifier } from '@warp-drive/core-types';
 import type { ArrayValue, ObjectValue, Value } from '@warp-drive/core-types/json/raw';
 import { STRUCTURED } from '@warp-drive/core-types/request';
 import type { FieldSchema } from '@warp-drive/core-types/schema/fields';
+import type { SingleResourceRelationship } from '@warp-drive/core-types/spec/json-api-raw';
 import { RecordStore } from '@warp-drive/core-types/symbols';
 
 import {
@@ -17,6 +19,7 @@ import {
   computeAttribute,
   computeDerivation,
   computeField,
+  computeHasMany,
   computeLocal,
   computeObject,
   computeResource,
@@ -25,7 +28,7 @@ import {
   ManagedObjectMap,
   peekManagedArray,
   peekManagedObject,
-} from './-private/compute';
+} from './fields/compute';
 import type { SchemaService } from './schema';
 import {
   ARRAY_SIGNAL,
@@ -122,6 +125,9 @@ export class SchemaRecord {
       },
 
       has(target: SchemaRecord, prop: string | number | symbol) {
+        if (prop === Destroy || prop === Checkout) {
+          return true;
+        }
         return fields.has(prop as string);
       },
 
@@ -240,33 +246,20 @@ export class SchemaRecord {
               !target[Legacy]
             );
             entangleSignal(signals, receiver, field.name);
-            return computeField(schema, cache, target, identifier, field, propArray);
+            return computeField(schema, cache, target, identifier, field, propArray, IS_EDITABLE);
           case 'attribute':
             entangleSignal(signals, receiver, field.name);
-            return computeAttribute(cache, identifier, prop as string);
+            return computeAttribute(cache, identifier, prop as string, IS_EDITABLE);
           case 'resource':
             assert(
               `SchemaRecord.${field.name} is not available in legacy mode because it has type '${field.kind}'`,
               !target[Legacy]
             );
             entangleSignal(signals, receiver, field.name);
-            return computeResource(store, cache, target, identifier, field, prop as string);
+            return computeResource(store, cache, target, identifier, field, prop as string, IS_EDITABLE);
           case 'derived':
             return computeDerivation(schema, receiver as unknown as SchemaRecord, identifier, field, prop as string);
           case 'schema-array':
-            entangleSignal(signals, receiver, field.name);
-            return computeArray(
-              store,
-              schema,
-              cache,
-              target,
-              identifier,
-              field,
-              propArray,
-              true,
-              Mode[Editable],
-              Mode[Legacy]
-            );
           case 'array':
             assert(
               `SchemaRecord.${field.name} is not available in legacy mode because it has type '${field.kind}'`,
@@ -281,7 +274,6 @@ export class SchemaRecord {
               identifier,
               field,
               propArray,
-              false,
               Mode[Editable],
               Mode[Legacy]
             );
@@ -310,6 +302,15 @@ export class SchemaRecord {
               Mode[Editable]
             );
           case 'belongsTo':
+            if (field.options.linksMode) {
+              entangleSignal(signals, receiver, field.name);
+              const rawValue = IS_EDITABLE
+                ? (cache.getRelationship(identifier, field.name) as SingleResourceRelationship)
+                : (cache.getRemoteRelationship(identifier, field.name) as SingleResourceRelationship);
+
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+              return rawValue.data ? store.peekRecord(rawValue.data) : null;
+            }
             if (!HAS_MODEL_PACKAGE) {
               assert(
                 `Cannot use belongsTo fields in your schema unless @ember-data/model is installed to provide legacy model support. ${field.name} should likely be migrated to be a resource field.`
@@ -320,6 +321,21 @@ export class SchemaRecord {
             entangleSignal(signals, receiver, field.name);
             return getLegacySupport(receiver as unknown as MinimalLegacyRecord).getBelongsTo(field.name);
           case 'hasMany':
+            if (field.options.linksMode) {
+              entangleSignal(signals, receiver, field.name);
+
+              return computeHasMany(
+                store,
+                schema,
+                cache,
+                target,
+                identifier,
+                field,
+                propArray,
+                Mode[Editable],
+                Mode[Legacy]
+              );
+            }
             if (!HAS_MODEL_PACKAGE) {
               assert(
                 `Cannot use hasMany fields in your schema unless @ember-data/model is installed to provide legacy model support.  ${field.name} should likely be migrated to be a collection field.`
@@ -398,6 +414,10 @@ export class SchemaRecord {
               cache.setAttr(identifier, propArray, (value as ArrayValue)?.slice());
               const peeked = peekManagedArray(self, field);
               if (peeked) {
+                assert(
+                  `Expected the peekManagedArray for ${field.kind} to return a ManagedArray`,
+                  ARRAY_SIGNAL in peeked
+                );
                 const arrSignal = peeked[ARRAY_SIGNAL];
                 arrSignal.shouldReset = true;
               }
@@ -414,6 +434,10 @@ export class SchemaRecord {
             cache.setAttr(identifier, propArray, rawValue);
             const peeked = peekManagedArray(self, field);
             if (peeked) {
+              assert(
+                `Expected the peekManagedArray for ${field.kind} to return a ManagedArray`,
+                ARRAY_SIGNAL in peeked
+              );
               const arrSignal = peeked[ARRAY_SIGNAL];
               arrSignal.shouldReset = true;
             }
@@ -427,6 +451,10 @@ export class SchemaRecord {
             cache.setAttr(identifier, propArray, arrayValue);
             const peeked = peekManagedArray(self, field);
             if (peeked) {
+              assert(
+                `Expected the peekManagedArray for ${field.kind} to return a ManagedArray`,
+                ARRAY_SIGNAL in peeked
+              );
               const arrSignal = peeked[ARRAY_SIGNAL];
               arrSignal.shouldReset = true;
             }
@@ -572,6 +600,10 @@ export class SchemaRecord {
                 if (field?.kind === 'array' || field?.kind === 'schema-array') {
                   const peeked = peekManagedArray(self, field);
                   if (peeked) {
+                    assert(
+                      `Expected the peekManagedArray for ${field.kind} to return a ManagedArray`,
+                      ARRAY_SIGNAL in peeked
+                    );
                     const arrSignal = peeked[ARRAY_SIGNAL];
                     arrSignal.shouldReset = true;
                     addToTransaction(arrSignal);
@@ -608,6 +640,17 @@ export class SchemaRecord {
                 } else if (field.kind === 'resource') {
                   // FIXME
                 } else if (field.kind === 'hasMany') {
+                  if (field.options.linksMode) {
+                    const peeked = peekManagedArray(self, field) as ManyArray | undefined;
+                    if (peeked) {
+                      // const arrSignal = peeked[ARRAY_SIGNAL];
+                      // arrSignal.shouldReset = true;
+                      // addToTransaction(arrSignal);
+                      peeked.notify();
+                    }
+                    return;
+                  }
+
                   assert(`Expected to have a getLegacySupport function`, getLegacySupport);
                   assert(`Can only use hasMany fields when the resource is in legacy mode`, Mode[Legacy]);
 
@@ -658,6 +701,11 @@ export class SchemaRecord {
     this[RecordStore].notifications.unsubscribe(this.___notifications);
   }
   [Checkout](): Promise<SchemaRecord> {
+    // IF we are already the editable record, throw an error
+    if (this[Editable]) {
+      throw new Error(`Cannot checkout an already editable record`);
+    }
+
     const editable = Editables.get(this);
     if (editable) {
       return Promise.resolve(editable);

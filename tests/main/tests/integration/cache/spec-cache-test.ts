@@ -23,6 +23,8 @@ import type {
   StableExistingRecordIdentifier,
   StableRecordIdentifier,
 } from '@warp-drive/core-types/identifier';
+import type { Value } from '@warp-drive/core-types/json/raw';
+import type { TypeFromInstanceOrString } from '@warp-drive/core-types/record';
 import type {
   CollectionResourceDataDocument,
   ResourceDocument,
@@ -118,6 +120,11 @@ class TestCache implements Cache {
   peek(identifier: StableDocumentIdentifier | StableRecordIdentifier): ResourceBlob | ResourceDocument | null {
     throw new Error(`Not Implemented`);
   }
+  peekRemoteState<T = unknown>(identifier: StableRecordIdentifier<TypeFromInstanceOrString<T>>): T | null;
+  peekRemoteState(identifier: StableDocumentIdentifier): ResourceDocument | null;
+  peekRemoteState<T = unknown>(identifier: unknown): T | ResourceDocument | null {
+    throw new Error(`Not Implemented`);
+  }
   peekRequest<T>(identifier: StableDocumentIdentifier): StructuredDocument<T> | null {
     throw new Error(`Not Implemented`);
   }
@@ -143,11 +150,11 @@ class TestCache implements Cache {
     calculateChanges?: boolean
   ): void | string[] {
     if (!this._data.has(identifier)) {
-      this._storeWrapper.notifyChange(identifier, 'added');
+      this._storeWrapper.notifyChange(identifier, 'added', null);
     }
     this._data.set(identifier, data);
-    this._storeWrapper.notifyChange(identifier, 'attributes');
-    this._storeWrapper.notifyChange(identifier, 'relationships');
+    this._storeWrapper.notifyChange(identifier, 'attributes', null);
+    this._storeWrapper.notifyChange(identifier, 'relationships', null);
   }
 
   clientDidCreate(identifier: StableRecordIdentifier, options?: Record<string, unknown>): Record<string, unknown> {
@@ -165,6 +172,9 @@ class TestCache implements Cache {
   getAttr(identifier: StableRecordIdentifier, propertyName: string): string {
     return '';
   }
+  getRemoteAttr(identifier: StableRecordIdentifier, field: string | string[]): Value | undefined {
+    return '';
+  }
   setAttr(identifier: StableRecordIdentifier, propertyName: string, value: unknown): void {
     throw new Error('Method not implemented.');
   }
@@ -180,6 +190,13 @@ class TestCache implements Cache {
   getRelationship(
     identifier: StableRecordIdentifier,
     propertyName: string
+  ): ResourceRelationship | CollectionRelationship {
+    throw new Error('Method not implemented.');
+  }
+  getRemoteRelationship(
+    identifier: StableRecordIdentifier,
+    field: string,
+    isCollection?: boolean
   ): ResourceRelationship | CollectionRelationship {
     throw new Error('Method not implemented.');
   }

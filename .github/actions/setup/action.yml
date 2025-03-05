@@ -63,14 +63,14 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+    - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
     - uses: actions/setup-node@v4
       with:
         registry-url: 'https://registry.npmjs.org'
         node-version-file: 'package.json'
         cache: 'pnpm'
 
-    - uses: oven-sh/setup-bun@v1
+    - uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
 
@@ -100,6 +100,11 @@ runs:
         sudo apt-get -y update
         sudo apt install libnss3-tools
         brew install mkcert
+
+    - name: 'Setup DBus for Chrome'
+      shell: bash
+      run: |
+        echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus" >> $GITHUB_ENV
 
     - name: Configure Parallel Builds
       if: ${{ inputs.parallel-build == 'true' }}

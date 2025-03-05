@@ -22,6 +22,7 @@ import type {
   StableExistingRecordIdentifier,
   StableRecordIdentifier,
 } from '@warp-drive/core-types/identifier';
+import type { TypeFromInstanceOrString } from '@warp-drive/core-types/record';
 import type {
   CollectionResourceDataDocument,
   ResourceDocument,
@@ -81,6 +82,11 @@ class TestCache implements Cache {
   peek(identifier: StableDocumentIdentifier | StableRecordIdentifier): ResourceBlob | ResourceDocument | null {
     throw new Error(`Not Implemented`);
   }
+  peekRemoteState<T = unknown>(identifier: StableRecordIdentifier<TypeFromInstanceOrString<T>>): T | null;
+  peekRemoteState(identifier: StableDocumentIdentifier): ResourceDocument | null;
+  peekRemoteState<T = unknown>(identifier: unknown): T | ResourceDocument | null {
+    throw new Error(`Not Implemented`);
+  }
   peekRequest<T>(identifier: StableDocumentIdentifier): StructuredDocument<T> | null {
     throw new Error(`Not Implemented`);
   }
@@ -114,11 +120,11 @@ class TestCache implements Cache {
     calculateChanges?: boolean
   ): void | string[] {
     if (!this._data.has(identifier)) {
-      this.wrapper.notifyChange(identifier, 'added');
+      this.wrapper.notifyChange(identifier, 'added', null);
     }
     this._data.set(identifier, data);
-    this.wrapper.notifyChange(identifier, 'attributes');
-    this.wrapper.notifyChange(identifier, 'relationships');
+    this.wrapper.notifyChange(identifier, 'attributes', null);
+    this.wrapper.notifyChange(identifier, 'relationships', null);
   }
   clientDidCreate(identifier: StableRecordIdentifier, options?: Record<string, unknown>): Record<string, unknown> {
     this._isNew = true;
@@ -138,6 +144,9 @@ class TestCache implements Cache {
   getAttr(identifier: StableRecordIdentifier, propertyName: string): string {
     return '';
   }
+  getRemoteAttr(identifier: StableRecordIdentifier, propertyName: string): string {
+    return '';
+  }
   setAttr(identifier: StableRecordIdentifier, propertyName: string, value: unknown): void {
     throw new Error('Method not implemented.');
   }
@@ -153,6 +162,13 @@ class TestCache implements Cache {
   getRelationship(
     identifier: StableRecordIdentifier,
     propertyName: string
+  ): ResourceRelationship | CollectionRelationship {
+    throw new Error('Method not implemented.');
+  }
+  getRemoteRelationship(
+    identifier: StableRecordIdentifier,
+    field: string,
+    isCollection?: boolean
   ): ResourceRelationship | CollectionRelationship {
     throw new Error('Method not implemented.');
   }
@@ -354,7 +370,7 @@ module('integration/record-data Custom Cache (v2) Errors', function (hooks) {
         },
       },
     ];
-    storeWrapper.notifyChange(identifier, 'errors');
+    storeWrapper.notifyChange(identifier, 'errors', null);
 
     nameError = person.errors.errorsFor('firstName').objectAt(0);
 
@@ -362,7 +378,7 @@ module('integration/record-data Custom Cache (v2) Errors', function (hooks) {
     assert.false(person.isValid, 'person is not valid');
 
     errorsToReturn = [];
-    storeWrapper.notifyChange(identifier, 'errors');
+    storeWrapper.notifyChange(identifier, 'errors', null);
 
     assert.strictEqual(person.errors.errorsFor('firstName').length, 0, 'no errors on name');
     assert.true(person.isValid, 'person is valid');
@@ -376,7 +392,7 @@ module('integration/record-data Custom Cache (v2) Errors', function (hooks) {
         },
       },
     ];
-    storeWrapper.notifyChange(identifier, 'errors');
+    storeWrapper.notifyChange(identifier, 'errors', null);
 
     assert.false(person.isValid, 'person is not valid');
 

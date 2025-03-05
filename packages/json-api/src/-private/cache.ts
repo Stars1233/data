@@ -4,6 +4,7 @@
 import type { CollectionEdge, Graph, GraphEdge, ImplicitEdge, ResourceEdge } from '@ember-data/graph/-private';
 import { graphFor, isBelongsTo, peekGraph } from '@ember-data/graph/-private';
 import type Store from '@ember-data/store';
+import { isStableIdentifier, logGroup } from '@ember-data/store/-private';
 import type { CacheCapabilitiesManager } from '@ember-data/store/types';
 import { LOG_MUTATIONS, LOG_OPERATIONS, LOG_REQUESTS } from '@warp-drive/build-config/debugging';
 import { DEPRECATE_RELATIONSHIP_REMOTE_UPDATE_CLEARING_LOCAL_STATE } from '@warp-drive/build-config/deprecations';
@@ -29,6 +30,7 @@ import type {
 import type {
   CollectionField,
   FieldSchema,
+  LegacyHasManyField,
   LegacyRelationshipSchema,
   ResourceField,
 } from '@warp-drive/core-types/schema/fields';
@@ -48,6 +50,8 @@ import type {
   SingleResourceDocument,
   SingleResourceRelationship,
 } from '@warp-drive/core-types/spec/json-api-raw';
+
+import { validateDocumentFields } from './validate-document-fields';
 
 type IdentifierCache = Store['identifierCache'];
 type InternalCapabilitiesManager = CacheCapabilitiesManager & { _store: Store };
@@ -213,33 +217,59 @@ export default class JSONAPICache implements Cache {
     let i: number, length: number;
     const { identifierCache } = this._capabilities;
 
+    if (DEBUG) {
+      validateDocumentFields(this._capabilities.schema, jsonApiDoc);
+    }
+
     if (LOG_REQUESTS) {
       const Counts = new Map();
+      let totalCount = 0;
       if (included) {
         for (i = 0, length = included.length; i < length; i++) {
           const type = included[i].type;
           Counts.set(type, (Counts.get(type) || 0) + 1);
+          totalCount++;
         }
       }
       if (Array.isArray(jsonApiDoc.data)) {
         for (i = 0, length = jsonApiDoc.data.length; i < length; i++) {
           const type = jsonApiDoc.data[i].type;
           Counts.set(type, (Counts.get(type) || 0) + 1);
+          totalCount++;
         }
       } else if (jsonApiDoc.data) {
         const type = jsonApiDoc.data.type;
         Counts.set(type, (Counts.get(type) || 0) + 1);
+        totalCount++;
       }
 
-      let str = `JSON:API Cache - put (${doc.content?.lid || doc.request?.url || 'unknown-request'})\n\tContents:`;
+      logGroup(
+        'cache',
+        'put',
+        '<@document>',
+        doc.content?.lid || doc.request?.url || 'unknown-request',
+        `(${totalCount}) records`,
+        ''
+      );
+      let str = `\tContent Counts:`;
       Counts.forEach((count, type) => {
-        str += `\n\t\t${type}: ${count}`;
+        str += `\n\t\t${type}: ${count} record${count > 1 ? 's' : ''}`;
       });
       if (Counts.size === 0) {
         str += `\t(empty)`;
       }
       // eslint-disable-next-line no-console
       console.log(str);
+      // eslint-disable-next-line no-console
+      console.log({
+        lid: doc.content?.lid,
+        content: structuredClone(doc.content),
+        // we may need a specialized copy here
+        request: doc.request, // structuredClone(doc.request),
+        response: doc.response, // structuredClone(doc.response),
+      });
+      // eslint-disable-next-line no-console
+      console.groupEnd();
     }
 
     if (included) {
@@ -269,11 +299,6 @@ export default class JSONAPICache implements Cache {
         included as StableExistingRecordIdentifier[]
       );
     }
-
-    assert(
-      `Expected a resource object in the 'data' property in the document provided to the cache, but was ${typeof jsonApiDoc.data}`,
-      typeof jsonApiDoc.data === 'object'
-    );
 
     const identifier = putOne(this, identifierCache, jsonApiDoc.data);
     return this._putDocument(
@@ -333,7 +358,25 @@ export default class JSONAPICache implements Cache {
       const hasExisting = this.__documents.has(identifier.lid);
       this.__documents.set(identifier.lid, doc as StructuredDocument<ResourceDocument>);
 
-      this._capabilities.notifyChange(identifier, hasExisting ? 'updated' : 'added');
+      this._capabilities.notifyChange(identifier, hasExisting ? 'updated' : 'added', null);
+    }
+
+    if (doc.request?.op === 'findHasMany') {
+      const parentIdentifier = doc.request.options?.identifier as StableRecordIdentifier | undefined;
+      const parentField = doc.request.options?.field as LegacyHasManyField | undefined;
+      assert(`Expected a hasMany field`, parentField?.kind === 'hasMany');
+      assert(
+        `Expected a parent identifier for a findHasMany request`,
+        parentIdentifier && isStableIdentifier(parentIdentifier)
+      );
+      if (parentField && parentIdentifier) {
+        this.__graph.push({
+          op: 'updateRelationship',
+          record: parentIdentifier,
+          field: parentField.name,
+          value: resourceDocument,
+        });
+      }
     }
 
     return resourceDocument;
@@ -382,16 +425,22 @@ export default class JSONAPICache implements Cache {
    */
   mutate(mutation: LocalRelationshipOperation): void {
     if (LOG_MUTATIONS) {
+      logGroup('cache', 'mutate', mutation.record.type, mutation.record.lid, mutation.field, mutation.op);
       try {
         const _data = JSON.parse(JSON.stringify(mutation)) as object;
         // eslint-disable-next-line no-console
-        console.log(`EmberData | Mutation - update ${mutation.op}`, _data);
+        console.log(_data);
       } catch {
         // eslint-disable-next-line no-console
-        console.log(`EmberData | Mutation - update ${mutation.op}`, mutation);
+        console.log(mutation);
       }
     }
     this.__graph.update(mutation, false);
+
+    if (LOG_MUTATIONS) {
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+    }
   }
 
   /**
@@ -483,6 +532,64 @@ export default class JSONAPICache implements Cache {
     return null;
   }
 
+  peekRemoteState(identifier: StableRecordIdentifier): ResourceObject | null;
+  peekRemoteState(identifier: StableDocumentIdentifier): ResourceDocument | null;
+  peekRemoteState(
+    identifier: StableDocumentIdentifier | StableRecordIdentifier
+  ): ResourceObject | ResourceDocument | null {
+    if ('type' in identifier) {
+      const peeked = this.__safePeek(identifier, false);
+
+      if (!peeked) {
+        return null;
+      }
+
+      const { type, id, lid } = identifier;
+      const attributes = Object.assign({}, peeked.remoteAttrs) as ObjectValue;
+      const relationships: ResourceObject['relationships'] = {};
+
+      const rels = this.__graph.identifiers.get(identifier);
+      if (rels) {
+        Object.keys(rels).forEach((key) => {
+          const rel = rels[key];
+          if (rel.definition.isImplicit) {
+            return;
+          } else {
+            relationships[key] = this.__graph.getData(identifier, key);
+          }
+        });
+      }
+
+      upgradeCapabilities(this._capabilities);
+      const store = this._capabilities._store;
+      const attrs = this._capabilities.schema.fields(identifier);
+      attrs.forEach((attr, key) => {
+        if (key in attributes && attributes[key] !== undefined) {
+          return;
+        }
+        const defaultValue = getDefaultValue(attr, identifier, store);
+
+        if (defaultValue !== undefined) {
+          attributes[key] = defaultValue;
+        }
+      });
+
+      return {
+        type,
+        id,
+        lid,
+        attributes,
+        relationships,
+      };
+    }
+
+    const document = this.peekRequest(identifier);
+
+    if (document) {
+      if ('content' in document) return document.content!;
+    }
+    return null;
+  }
   /**
    * Peek the Cache for the existing request data associated with
    * a cacheable request.
@@ -515,7 +622,7 @@ export default class JSONAPICache implements Cache {
     data: ExistingResourceObject,
     calculateChanges?: boolean
   ): void | string[] {
-    let changedKeys: string[] | undefined;
+    let changedKeys: Set<string> | undefined;
     const peeked = this.__safePeek(identifier, false);
     const existed = !!peeked;
     const cached = peeked || this._createCache(identifier);
@@ -524,38 +631,52 @@ export default class JSONAPICache implements Cache {
     const isUpdate = /*#__NOINLINE__*/ !_isEmpty(peeked) && !isLoading;
 
     if (LOG_OPERATIONS) {
+      logGroup(
+        'cache',
+        'upsert',
+        identifier.type,
+        identifier.lid,
+        existed ? 'merged' : 'inserted',
+        calculateChanges ? 'has-subscription' : ''
+      );
       try {
         const _data = JSON.parse(JSON.stringify(data)) as object;
+
         // eslint-disable-next-line no-console
-        console.log(`EmberData | Operation - upsert (${existed ? 'merge' : 'insert'})`, _data);
+        console.log(_data);
       } catch {
         // eslint-disable-next-line no-console
-        console.log(`EmberData | Operation - upsert (${existed ? 'merge' : 'insert'})`, data);
+        console.log(data);
       }
     }
 
     if (cached.isNew) {
       cached.isNew = false;
-      this._capabilities.notifyChange(identifier, 'identity');
-      this._capabilities.notifyChange(identifier, 'state');
+      this._capabilities.notifyChange(identifier, 'identity', null);
+      this._capabilities.notifyChange(identifier, 'state', null);
     }
 
-    if (calculateChanges) {
-      changedKeys = existed ? calculateChangedKeys(cached, data.attributes) : Object.keys(data.attributes || {});
+    const fields = this._capabilities.schema.fields(identifier);
+
+    // if no cache entry existed, no record exists / property has been accessed
+    // and thus we do not need to notify changes to any properties.
+    if (calculateChanges && existed && data.attributes) {
+      changedKeys = calculateChangedKeys(cached, data.attributes, fields);
     }
 
     cached.remoteAttrs = Object.assign(
       cached.remoteAttrs || (Object.create(null) as Record<string, unknown>),
       data.attributes
     );
+
     if (cached.localAttrs) {
-      if (patchLocalAttributes(cached)) {
-        this._capabilities.notifyChange(identifier, 'state');
+      if (patchLocalAttributes(cached, changedKeys)) {
+        this._capabilities.notifyChange(identifier, 'state', null);
       }
     }
 
     if (!isUpdate) {
-      this._capabilities.notifyChange(identifier, 'added');
+      this._capabilities.notifyChange(identifier, 'added', null);
     }
 
     if (data.id) {
@@ -563,14 +684,19 @@ export default class JSONAPICache implements Cache {
     }
 
     if (data.relationships) {
-      setupRelationships(this.__graph, this._capabilities, identifier, data);
+      setupRelationships(this.__graph, fields, identifier, data);
     }
 
-    if (changedKeys && changedKeys.length) {
+    if (changedKeys?.size) {
       notifyAttributes(this._capabilities, identifier, changedKeys);
     }
 
-    return changedKeys;
+    if (LOG_OPERATIONS) {
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+    }
+
+    return changedKeys?.size ? Array.from(changedKeys) : undefined;
   }
 
   // Cache Forking Support
@@ -762,7 +888,7 @@ export default class JSONAPICache implements Cache {
       }
     }
 
-    this._capabilities.notifyChange(identifier, 'added');
+    this._capabilities.notifyChange(identifier, 'added', null);
 
     return createOptions;
   }
@@ -868,7 +994,7 @@ export default class JSONAPICache implements Cache {
         isNew: false,
       });
       cached.isDeletionCommitted = true;
-      this._capabilities.notifyChange(identifier, 'removed');
+      this._capabilities.notifyChange(identifier, 'removed', null);
       // TODO @runspired should we early exit here?
     }
 
@@ -883,6 +1009,7 @@ export default class JSONAPICache implements Cache {
       }
     }
 
+    const fields = this._capabilities.schema.fields(identifier);
     cached.isNew = false;
     let newCanonicalAttributes: ExistingResourceObject['attributes'];
     if (data) {
@@ -890,7 +1017,7 @@ export default class JSONAPICache implements Cache {
         cached.id = data.id;
       }
       if (identifier === committedIdentifier && identifier.id !== existingId) {
-        this._capabilities.notifyChange(identifier, 'identity');
+        this._capabilities.notifyChange(identifier, 'identity', null);
       }
 
       assert(
@@ -903,7 +1030,6 @@ export default class JSONAPICache implements Cache {
           if (!DEPRECATE_RELATIONSHIP_REMOTE_UPDATE_CLEARING_LOCAL_STATE) {
             // assert against bad API behavior where a belongsTo relationship
             // is saved but the return payload indicates a different final state.
-            const fields = this._capabilities.schema.fields(identifier);
             fields.forEach((field, name) => {
               if (field.kind === 'belongsTo') {
                 const relationshipData = data.relationships![name]?.data;
@@ -929,11 +1055,11 @@ export default class JSONAPICache implements Cache {
             cached.inflightRelationships = null;
           }
         }
-        setupRelationships(this.__graph, this._capabilities, identifier, data);
+        setupRelationships(this.__graph, fields, identifier, data);
       }
       newCanonicalAttributes = data.attributes;
     }
-    const changedKeys = calculateChangedKeys(cached, newCanonicalAttributes);
+    const changedKeys = newCanonicalAttributes && calculateChangedKeys(cached, newCanonicalAttributes, fields);
 
     cached.remoteAttrs = Object.assign(
       cached.remoteAttrs || (Object.create(null) as Record<string, unknown>),
@@ -941,15 +1067,15 @@ export default class JSONAPICache implements Cache {
       newCanonicalAttributes
     );
     cached.inflightAttrs = null;
-    patchLocalAttributes(cached);
+    patchLocalAttributes(cached, changedKeys);
 
     if (cached.errors) {
       cached.errors = null;
-      this._capabilities.notifyChange(identifier, 'errors');
+      this._capabilities.notifyChange(identifier, 'errors', null);
     }
 
-    notifyAttributes(this._capabilities, identifier, changedKeys);
-    this._capabilities.notifyChange(identifier, 'state');
+    if (changedKeys?.size) notifyAttributes(this._capabilities, identifier, changedKeys);
+    this._capabilities.notifyChange(identifier, 'state', null);
 
     const included = payload && payload.included;
     if (included) {
@@ -990,7 +1116,7 @@ export default class JSONAPICache implements Cache {
     if (errors) {
       cached.errors = errors;
     }
-    this._capabilities.notifyChange(identifier, 'errors');
+    this._capabilities.notifyChange(identifier, 'errors', null);
   }
 
   /**
@@ -1040,7 +1166,7 @@ export default class JSONAPICache implements Cache {
     if (areAllModelsUnloaded(storeWrapper, relatedIdentifiers)) {
       for (let i = 0; i < relatedIdentifiers.length; ++i) {
         const relatedIdentifier = relatedIdentifiers[i];
-        storeWrapper.notifyChange(relatedIdentifier, 'removed');
+        storeWrapper.notifyChange(relatedIdentifier, 'removed', null);
         removed = true;
         storeWrapper.disconnectRecord(relatedIdentifier);
       }
@@ -1070,7 +1196,7 @@ export default class JSONAPICache implements Cache {
     }
 
     if (!removed && removeFromRecordArray) {
-      storeWrapper.notifyChange(identifier, 'removed');
+      storeWrapper.notifyChange(identifier, 'removed', null);
     }
   }
 
@@ -1142,6 +1268,65 @@ export default class JSONAPICache implements Cache {
     if (current === undefined) {
       return undefined;
     }
+    for (let i = 1; i < path.length; i++) {
+      current = (current as ObjectValue)[path[i]];
+      if (current === undefined) {
+        return undefined;
+      }
+    }
+    return current;
+  }
+
+  getRemoteAttr(identifier: StableRecordIdentifier, attr: string | string[]): Value | undefined {
+    const isSimplePath = !Array.isArray(attr) || attr.length === 1;
+    if (Array.isArray(attr) && attr.length === 1) {
+      attr = attr[0];
+    }
+
+    if (isSimplePath) {
+      const attribute = attr as string;
+      const cached = this.__peek(identifier, true);
+      assert(
+        `Cannot retrieve remote attributes for identifier ${String(identifier)} as it is not present in the cache`,
+        cached
+      );
+
+      // in Prod we try to recover when accessing something that
+      // doesn't exist
+      if (!cached) {
+        return undefined;
+      }
+
+      if (cached.remoteAttrs && attribute in cached.remoteAttrs) {
+        return cached.remoteAttrs[attribute];
+
+        // we still show defaultValues in the case of a remoteAttr access
+      } else if (cached.defaultAttrs && attribute in cached.defaultAttrs) {
+        return cached.defaultAttrs[attribute];
+      } else {
+        const attrSchema = this._capabilities.schema.fields(identifier).get(attribute);
+
+        upgradeCapabilities(this._capabilities);
+        const defaultValue = getDefaultValue(attrSchema, identifier, this._capabilities._store);
+        if (schemaHasLegacyDefaultValueFn(attrSchema)) {
+          cached.defaultAttrs = cached.defaultAttrs || (Object.create(null) as Record<string, Value>);
+          cached.defaultAttrs[attribute] = defaultValue;
+        }
+        return defaultValue;
+      }
+    }
+
+    // TODO @runspired consider whether we need a defaultValue cache in SchemaRecord
+    // like we do for the simple case above.
+    const path: string[] = attr as string[];
+    const cached = this.__peek(identifier, true);
+    const basePath = path[0];
+    let current = cached.remoteAttrs && basePath in cached.remoteAttrs ? cached.remoteAttrs[basePath] : undefined;
+
+    if (current === undefined) {
+      return undefined;
+    }
+
     for (let i = 1; i < path.length; i++) {
       current = (current as ObjectValue)[path[i]];
       if (current === undefined) {
@@ -1357,13 +1542,13 @@ export default class JSONAPICache implements Cache {
 
     if (cached.errors) {
       cached.errors = null;
-      this._capabilities.notifyChange(identifier, 'errors');
+      this._capabilities.notifyChange(identifier, 'errors', null);
     }
 
-    this._capabilities.notifyChange(identifier, 'state');
+    this._capabilities.notifyChange(identifier, 'state', null);
 
     if (dirtyKeys && dirtyKeys.length) {
-      notifyAttributes(this._capabilities, identifier, dirtyKeys);
+      notifyAttributes(this._capabilities, identifier, new Set(dirtyKeys));
     }
 
     return dirtyKeys || [];
@@ -1446,6 +1631,13 @@ export default class JSONAPICache implements Cache {
     return this.__graph.getData(identifier, field);
   }
 
+  getRemoteRelationship(
+    identifier: StableRecordIdentifier,
+    field: string
+  ): ResourceRelationship | CollectionRelationship {
+    return this.__graph.getRemoteData(identifier, field);
+  }
+
   // Resource State
   // ===============
 
@@ -1464,7 +1656,7 @@ export default class JSONAPICache implements Cache {
     const cached = this.__peek(identifier, false);
     cached.isDeleted = isDeleted;
     // > Note: Graph removal for isNew handled by unloadRecord
-    this._capabilities.notifyChange(identifier, 'state');
+    this._capabilities.notifyChange(identifier, 'state', null);
   }
 
   /**
@@ -1660,14 +1852,18 @@ function getDefaultValue(
   }
 }
 
-function notifyAttributes(storeWrapper: CacheCapabilitiesManager, identifier: StableRecordIdentifier, keys?: string[]) {
+function notifyAttributes(
+  storeWrapper: CacheCapabilitiesManager,
+  identifier: StableRecordIdentifier,
+  keys?: Set<string>
+) {
   if (!keys) {
-    storeWrapper.notifyChange(identifier, 'attributes');
+    storeWrapper.notifyChange(identifier, 'attributes', null);
     return;
   }
 
-  for (let i = 0; i < keys.length; i++) {
-    storeWrapper.notifyChange(identifier, 'attributes', keys[i]);
+  for (const key of keys) {
+    storeWrapper.notifyChange(identifier, 'attributes', key);
   }
 }
 
@@ -1676,35 +1872,40 @@ function notifyAttributes(storeWrapper: CacheCapabilitiesManager, identifier: St
       There seems to be a potential bug here, where we will return keys that are not
       in the schema
   */
-function calculateChangedKeys(cached: CachedResource, updates?: ExistingResourceObject['attributes']): string[] {
-  const changedKeys: string[] = [];
+function calculateChangedKeys(
+  cached: CachedResource,
+  updates: Exclude<ExistingResourceObject['attributes'], undefined>,
+  fields: ReturnType<Store['schema']['fields']>
+): Set<string> {
+  const changedKeys = new Set<string>();
+  const keys = Object.keys(updates);
+  const length = keys.length;
+  const localAttrs = cached.localAttrs;
 
-  if (updates) {
-    const keys = Object.keys(updates);
-    const length = keys.length;
-    const localAttrs = cached.localAttrs;
+  const original: Record<string, unknown> = Object.assign(
+    Object.create(null) as Record<string, unknown>,
+    cached.remoteAttrs,
+    cached.inflightAttrs
+  );
 
-    const original: Record<string, unknown> = Object.assign(
-      Object.create(null) as Record<string, unknown>,
-      cached.remoteAttrs,
-      cached.inflightAttrs
-    );
+  for (let i = 0; i < length; i++) {
+    const key = keys[i];
+    if (!fields.has(key)) {
+      continue;
+    }
 
-    for (let i = 0; i < length; i++) {
-      const key = keys[i];
-      const value = updates[key];
+    const value = updates[key];
 
-      // A value in localAttrs means the user has a local change to
-      // this attribute. We never override this value when merging
-      // updates from the backend so we should not sent a change
-      // notification if the server value differs from the original.
-      if (localAttrs && localAttrs[key] !== undefined) {
-        continue;
-      }
+    // A value in localAttrs means the user has a local change to
+    // this attribute. We never override this value when merging
+    // updates from the backend so we should not sent a change
+    // notification if the server value differs from the original.
+    if (localAttrs && localAttrs[key] !== undefined) {
+      continue;
+    }
 
-      if (original[key] !== value) {
-        changedKeys.push(key);
-      }
+    if (original[key] !== value) {
+      changedKeys.add(key);
     }
   }
 
@@ -1768,7 +1969,7 @@ function _isLoading(
 
 function setupRelationships(
   graph: Graph,
-  capabilities: CacheCapabilitiesManager,
+  fields: ReturnType<Store['schema']['fields']>,
   identifier: StableRecordIdentifier,
   data: ExistingResourceObject
 ) {
@@ -1776,7 +1977,6 @@ function setupRelationships(
   // allows relationship payloads to be ignored silently if no relationship
   // definition exists. Ensure there's a test for this and then consider
   // moving this to an assertion. This check should possibly live in the graph.
-  const fields = capabilities.schema.fields(identifier);
   for (const [name, field] of fields) {
     if (!isRelationship(field)) continue;
 
@@ -1797,7 +1997,7 @@ function isRelationship(field: FieldSchema): field is LegacyRelationshipSchema |
   return RelationshipKinds.has(field.kind);
 }
 
-function patchLocalAttributes(cached: CachedResource): boolean {
+function patchLocalAttributes(cached: CachedResource, changedRemoteKeys?: Set<string>): boolean {
   const { localAttrs, remoteAttrs, inflightAttrs, defaultAttrs, changes } = cached;
   if (!localAttrs) {
     cached.changes = null;
@@ -1817,6 +2017,11 @@ function patchLocalAttributes(cached: CachedResource): boolean {
 
     if (existing === localAttrs[attr]) {
       hasAppliedPatch = true;
+
+      // if the local change is committed, then
+      // the remoteKeyChange is no longer relevant
+      changedRemoteKeys?.delete(attr);
+
       delete localAttrs[attr];
       delete changes![attr];
     }

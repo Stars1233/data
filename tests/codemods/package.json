@@ -1,7 +1,7 @@
 {
   "name": "codemods-tests",
   "private": true,
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.141",
   "description": "Codemods for EmberData paradigms",
   "keywords": [],
   "repository": {
@@ -27,30 +27,24 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "jscodeshift": "^0.15.2",
-    "prettier": "^3.3.2",
-    "typescript": "^5.7.2"
+    "jscodeshift": "^17.1.2",
+    "prettier": "^3.5.2",
+    "typescript": "^5.8.2"
   },
   "devDependencies": {
     "@ember-data/codemods": "workspace:*",
-    "@types/bun": "^1.1.4",
-    "@types/jscodeshift": "0.11.11",
+    "@types/bun": "^1.2.4",
+    "@types/jscodeshift": "0.12.0",
     "@warp-drive/internal-config": "workspace:*",
-    "eslint": "^9.12.0",
-    "pnpm-sync-dependencies-meta-injected": "0.0.14",
+    "eslint": "^9.21.0",
     "qunit": "^2.20.1",
-    "tsx": "^4.10.4"
+    "tsx": "^4.19.3"
   },
   "engines": {
-    "node": ">= 18.20.4"
+    "node": ">= 18.20.7"
   },
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9",
-  "dependenciesMeta": {
-    "@ember-data/codemods": {
-      "injected": true
-    }
-  }
+  "packageManager": "pnpm@10.5.2"
 }

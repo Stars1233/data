@@ -22,8 +22,24 @@ export interface CollectionEdge {
   links: Links | PaginationLinks | null;
 
   localState: StableRecordIdentifier[] | null;
+  /**
+   * Whether the localState for this edge is out-of-sync
+   * with the remoteState.
+   *
+   * if state.hasReceivedData=false we are also
+   * not dirty since there is nothing to sync with.
+   *
+   * @typedoc
+   */
   isDirty: boolean;
   transactionRef: number;
+  /**
+   * Whether data for this edge has been accessed at least once
+   * via `graph.getData`
+   *
+   * @typedoc
+   */
+  accessed: boolean;
 
   _diff?: {
     add: Set<StableRecordIdentifier>;
@@ -45,17 +61,22 @@ export function createCollectionEdge(definition: UpgradedMeta, identifier: Stabl
     links: null,
 
     localState: null,
-    isDirty: true,
+    isDirty: false,
     transactionRef: 0,
+    accessed: false,
     _diff: undefined,
   };
 }
 
-export function legacyGetCollectionRelationshipData(source: CollectionEdge): CollectionRelationship {
+export function legacyGetCollectionRelationshipData(
+  source: CollectionEdge,
+  getRemoteState: boolean
+): CollectionRelationship {
+  source.accessed = true;
   const payload: CollectionRelationship = {};
 
   if (source.state.hasReceivedData) {
-    payload.data = computeLocalState(source);
+    payload.data = getRemoteState ? source.remoteState.slice() : computeLocalState(source);
   }
 
   if (source.links) {

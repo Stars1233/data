@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 7
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/setup
         with:
           restore-broccoli-cache: true
@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 7
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/setup
         with:
           restore-broccoli-cache: true
@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 7
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/setup
         with:
           restore-broccoli-cache: true
@@ -54,18 +54,24 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Tests
         run: pnpm test:vite
-  floating-dependencies:
-    timeout-minutes: 9
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
-      - uses: ./.github/actions/setup
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install dependencies w/o lockfile
-        run: pnpm install --no-lockfile
-      - name: Basic Tests
-        run: pnpm test
+  ###
+  # This Test No Longer Works Because pnpm install --no-lockfile
+  # returns exit code 1 whenever there is a lockfile present and
+  # changes are made to node_modules. This is probably a bug in pnpm.
+  ###
+  #
+  # floating-dependencies:
+  #   timeout-minutes: 9
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+  #     - uses: ./.github/actions/setup
+  #       with:
+  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Install dependencies w/o lockfile
+  #       run: pnpm install --no-lockfile
+  #     - name: Basic Tests
+  #       run: pnpm test
   node-version-test:
     name: Use Node.js ${{ matrix.node-version }}
     timeout-minutes: 10
@@ -74,7 +80,7 @@ jobs:
       matrix:
         node-version: [16.x, 18.x]
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/setup
         with:
           node-version: ${{ matrix.node-version }}
@@ -83,3 +89,34 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Basic Tests
         run: pnpm test
+
+  smoke-tests:
+    name: Smoke ${{ matrix.scenario.name }} w/ ${{ matrix.packageManager }}
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    # TODO:
+    # needs: [embroider, vite]
+
+    strategy:
+      matrix:
+        packageManager:
+        - npm
+        # - yarn # yarn@1 has not been reliable, if yarn@4 were easy to setup, we could test against that
+        - pnpm
+        scenario:
+          - { dir: "dt-types", name: "DT Types" }
+          - { dir: "native-types", name: "Native Types" }
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/actions/setup
+        with:
+          restore-broccoli-cache: true
+          install: true
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Run a basic smoke test with ${{ matrix.packageManager }} and ${{ matrix.kind }} tagging"
+        run: |
+          bun ./tests/smoke-tests/run.ts \
+            "${{ matrix.scenario.dir }}" "${{ matrix.packageManager }}"
+
+

@@ -1,6 +1,6 @@
 {
   "name": "warp-drive__schema",
-  "version": "5.4.0-alpha.128",
+  "version": "5.4.0-alpha.141",
   "private": true,
   "description": "Tests for the @warp-drive/schema package",
   "keywords": [],
@@ -14,14 +14,12 @@
   "devDependencies": {
     "pnpm-sync-dependencies-meta-injected": "0.0.14"
   },
-  "scripts": {
-    "sync-hardlinks": "bun run sync-dependencies-meta-injected"
-  },
+  "scripts": {},
   "engines": {
-    "node": ">= 18.20.4"
+    "node": ">= 18.20.7"
   },
   "volta": {
     "extends": "../../package.json"
   },
-  "packageManager": "pnpm@8.15.9"
+  "packageManager": "pnpm@10.5.2"
 }

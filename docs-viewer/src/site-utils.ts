@@ -1,6 +1,7 @@
 import path from 'path';
 // @ts-expect-error missing from Bun types
-import { globSync } from 'node:fs';
+import { globSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { write } from 'node:console';
 
 const DefaultOpenGroups: string[] = [];
 const AlwaysOpenGroups: string[] = ['configuration.setup'];
@@ -40,7 +41,7 @@ function segmentToIndex(segment: string, index: number) {
 }
 
 export async function getGuidesStructure(withRewrites = false) {
-  const GuidesDirectoryPath = path.join(__dirname, '../docs.warp-drive.io/guide');
+  const GuidesDirectoryPath = path.join(__dirname, '../docs.warp-drive.io/guides');
   const glob = globSync('**/*.md', { cwd: GuidesDirectoryPath });
   const rewritten: Record<string, string> = {};
   const groups: Record<string, any> = {
@@ -109,9 +110,9 @@ export async function getGuidesStructure(withRewrites = false) {
     const trueSegment = withRewrites ? niceSegment : lastSegment;
     rewrittenPath.push(niceSegment);
 
-    const rewrittenUrl = `/guide/${rewrittenPath.join('/')}`;
+    const rewrittenUrl = `/guides/${rewrittenPath.join('/')}`;
     // in order for index urls to highlight in the nav they can't have "index" in the url path
-    const realUrl = `/guide/${filepath.endsWith('index.md') ? filepath.replace('/index.md', '') : filepath.replace('.md', '')}`;
+    const realUrl = `/guides/${filepath.endsWith('index.md') ? filepath.replace('/index.md', '') : filepath.replace('.md', '')}`;
 
     // add the last segment to the group
     const existing = Object.keys(group);
@@ -138,7 +139,16 @@ export async function getGuidesStructure(withRewrites = false) {
   const result = deepConvert(groups);
   // console.log(JSON.stringify(result, null, 2));
   // console.log(JSON.stringify(rewritten, null, 2));
+  const structure = { paths: result, rewritten };
 
+  writeFileSync(
+    path.join(__dirname, '../docs.warp-drive.io/guides/nav.json'),
+    JSON.stringify(structure, null, 2),
+    'utf-8'
+  );
+  await import(path.join(__dirname, '../docs.warp-drive.io/guides/nav.json'), {
+    with: { type: 'json' },
+  });
   return { paths: result, rewritten };
 }
 
@@ -156,4 +166,181 @@ function deepConvert(obj: Record<string, any>) {
   return groups.sort((a, b) => {
     return a.index < b.index ? -1 : a.index > b.index ? 1 : 0;
   });
+}
+
+type SidebarItem = { text: string; items?: SidebarItem[]; link?: string; collapsed?: boolean };
+
+const OLD_PACKAGES = [
+  '@ember-data/adapter',
+  '@ember-data/active-record',
+  '@ember-data/debug',
+  '@ember-data/legacy-compat',
+  '@ember-data/model',
+  '@ember-data/json-api',
+  '@ember-data/store',
+  '@ember-data/graph',
+  '@ember-data/request',
+  '@ember-data/request-utils',
+  '@ember-data/rest',
+  '@ember-data/serializer',
+  '@ember-data/tracking',
+  '@warp-drive/core-types',
+  '@warp-drive/build-config',
+  '@warp-drive/schema-record',
+];
+
+export function splitApiDocsSidebar(sidebar: SidebarItem[]) {
+  const oldPackages: SidebarItem[] = [];
+  const newPackages: SidebarItem[] = [];
+
+  for (const item of sidebar) {
+    if (OLD_PACKAGES.includes(item.text)) {
+      oldPackages.push(item);
+    } else {
+      newPackages.push(item);
+    }
+  }
+
+  return {
+    oldPackages,
+    newPackages,
+  };
+}
+
+export function asApiDocsSidebar(o: unknown): { oldPackages: SidebarItem[]; newPackages: SidebarItem[] } {
+  return o as { oldPackages: SidebarItem[]; newPackages: SidebarItem[] };
+}
+
+const HOISTED_PRIMITIVES = ['Classes', 'Variables', 'Functions'];
+const FILTERED_NAV_ITEMS = ['Interfaces', 'Type Aliases'];
+const META_PACKAGES = ['ember-data', 'warp-drive', 'eslint-plugin-ember-data', 'eslint-plugin-warp-drive'];
+
+function cleanSidebarItems(items: SidebarItem[], isPrimitive = false): SidebarItem[] {
+  const newItems: SidebarItem[] = [];
+  let submodules: SidebarItem[] = [];
+
+  const hoisted: SidebarItem = { text: 'exports', items: [] };
+
+  for (const item of items) {
+    if (FILTERED_NAV_ITEMS.includes(item.text)) {
+      // skip filtered items
+      continue;
+    }
+
+    if (HOISTED_PRIMITIVES.includes(item.text)) {
+      hoisted.items!.push(...cleanSidebarItems(item.items || [], true));
+      continue;
+    }
+
+    if (item.text === 'Modules') {
+      // hoist modules up
+      submodules = cleanSidebarItems(item.items || []);
+      continue;
+    }
+
+    if (!META_PACKAGES.includes(item.text) && !item.text.startsWith('@') && !isPrimitive) {
+      item.text = '/' + item.text;
+    }
+
+    if (item.items) {
+      item.items = cleanSidebarItems(item.items);
+    }
+    newItems.push(item);
+    continue;
+  }
+
+  if (submodules.length === 0) {
+    return newItems;
+  }
+
+  if (hoisted.items!.length > 0) {
+    // if we have hoisted items, we add them to the new items
+    newItems.unshift(hoisted);
+  }
+
+  return newItems.concat(submodules);
+}
+
+const DOC_FRONTMATTER = `---
+outline:
+  level: [2, 3]
+---
+`;
+const ApiDocumentation = `# API Docs\n\n`;
+
+export async function postProcessApiDocs() {
+  const dir = path.join(__dirname, '../tmp/api');
+  const outDir = path.join(__dirname, '../docs.warp-drive.io/api');
+  mkdirSync(outDir, { recursive: true });
+
+  // cleanup and prepare the sidebar items
+  const sidebarPath = path.join(outDir, 'typedoc-sidebar.json');
+  const navStructure = JSON.parse(readFileSync(path.join(dir, 'typedoc-sidebar.json'), 'utf-8')) as SidebarItem[];
+  const sidebar = splitApiDocsSidebar(cleanSidebarItems(navStructure));
+  writeFileSync(sidebarPath, JSON.stringify(sidebar, null, 2), 'utf-8');
+
+  // get the package list
+  const NewPackages: string[] = [];
+  const OldPackages: string[] = [];
+  for (const item of sidebar.newPackages) {
+    NewPackages.push(`- [${item.text}](${item.link!})`);
+  }
+  for (const item of sidebar.oldPackages) {
+    OldPackages.push(`- [${item.text}](${item.link!})`);
+  }
+
+  // generate the API documentation
+  const apiDocumentation = `${ApiDocumentation}\n\n## Main Packages\n\n${NewPackages.join('\n')}\n\n## Legacy Packages\n\n${OldPackages.join('\n')}\n\n`;
+
+  // copy the rest of the files
+  const files = globSync('**/*.md', { cwd: dir, nodir: true });
+  for (const file of files) {
+    if (file === 'index.md') {
+      // Generate a custom index.md file
+      writeFileSync(path.join(outDir, 'index.md'), apiDocumentation, 'utf-8');
+      continue;
+    }
+    const content = readFileSync(path.join(dir, file), 'utf-8');
+    const outFile = path.join(outDir, file);
+    mkdirSync(path.dirname(outFile), { recursive: true });
+
+    let newContent = content;
+
+    // insert frontmatter
+    newContent = DOC_FRONTMATTER + newContent;
+
+    // if the content has a modules list, we remove it
+    if (newContent.includes('## Modules')) {
+      newContent = newContent.slice(0, newContent.indexOf('## Modules'));
+    }
+
+    // if the content has `Interface` or `Type Aliases` we collapse them
+    const hasInterfaces = newContent.includes('## Interfaces');
+    const hasTypeAliases = newContent.includes('## Type Aliases');
+    if (hasInterfaces) {
+      newContent = newContent.replace('## Interfaces', '## Types');
+      newContent = newContent.replace('\n\n## Type Aliases\n', '');
+    } else if (hasTypeAliases) {
+      newContent = newContent.replace('## Type Aliases', '## Types');
+    }
+
+    // if the content has `Properties` and `Accessors` we collapse them
+    const hasProperties = newContent.includes('## Properties');
+    const hasAccessors = newContent.includes('## Accessors');
+    if (hasAccessors) {
+      if (hasProperties) {
+        newContent = newContent.replace('\n\n## Accessors\n', '');
+      } else {
+        newContent = newContent.replace('## Accessors', '## Properties');
+      }
+    }
+
+    writeFileSync(outFile, newContent, 'utf-8');
+  }
+
+  await import(sidebarPath, {
+    with: { type: 'json' },
+  });
+
+  return sidebar;
 }

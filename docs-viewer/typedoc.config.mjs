@@ -4,7 +4,7 @@ import { OptionDefaults } from 'typedoc';
 const config = {
   $schema: 'https://typedoc.org/schema.json',
   entryPointStrategy: 'packages',
-  docsRoot: './docs.warp-drive.io',
+  docsRoot: './tmp',
   entryPoints: [
     // '../packages/*'
     '../packages/active-record',
@@ -41,7 +41,20 @@ const config = {
     excludeInternal: true,
     // inheritNone: true,
     useCodeBlocks: true,
-    hidePageTitle: true,
+    hidePageTitle: false,
+    groupReferencesByType: true,
+    groupOrder: [
+      'Classes',
+      'Methods',
+      'Properties',
+      'Accessors',
+      'Variables',
+      'Functions',
+      '*',
+      'Interfaces',
+      'Type Aliases',
+      'Modules',
+    ],
     blockTags: [...OptionDefaults.blockTags, '@until', '@since', '@id'],
     modifierTags: [...OptionDefaults.modifierTags, '@required', '@optional', '@recommended', '@legacy', '@polaris'],
   },
@@ -49,8 +62,9 @@ const config = {
     import.meta.resolve('typedoc-plugin-markdown').slice(7),
     import.meta.resolve('typedoc-vitepress-theme').slice(7),
     import.meta.resolve('typedoc-plugin-no-inherit').slice(7),
+    import.meta.resolve('typedoc-plugin-mdn-links').slice(7),
   ],
-  out: './docs.warp-drive.io/api',
+  out: './tmp/api',
   sidebar: {
     pretty: true,
   },
@@ -58,7 +72,7 @@ const config = {
   tsconfig: '../tsconfig.json',
   excludeInternal: true,
   useCodeBlocks: true,
-  hidePageTitle: true,
+  hidePageTitle: false,
   // typeAliasPropertiesFormat: 'htmlTable',
   // inheritNone: true,
 };

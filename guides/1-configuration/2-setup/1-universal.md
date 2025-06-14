@@ -3,14 +3,13 @@ outline:
   level: 2,3
 ---
 
-::: tip EmberData/WarpDrive Packages Have Been [Simplified](https://rfcs.emberjs.com/id/1075-warp-drive-package-unification/)
-
-Looking for the [Old Package Setup Guide?](../4-old-package-setup/1-overview.md)
+::: warning 💡 Looking for the [Legacy Package Setup Guide?](../4-legacy-package-setup/2-setup/1-universal)
 :::
 
 # Setup
 
-All frameworks should follow this configuration first.
+All frameworks should follow this configuration before continuing on to their framework
+specific setup guide.
 
 ## Configure the Build Plugin
 
@@ -23,16 +22,43 @@ is done inside of the app's babel configuration file.
 ::: code-group
 
 ```ts [Universal Apps]
+// babel.config.mjs
 import { setConfig } from '@warp-drive/core/build-config';
+import { buildMacros } from '@embroider/macros/babel';
 
-setConfig(context, {
-  // this should be the most recent <major>.<minor> version for
-  // which all deprecations have been fully resolved
-  // and should be updated when that changes
-  // for new apps it should be the version you installed
-  // for universal apps this MUST be at least 5.6
-  compatWith: '5.6'
+const Macros = buildMacros({
+  configure: (config) => {
+    setConfig(config, {
+      // this should be the most recent <major>.<minor> version for
+      // which all deprecations have been fully resolved
+      // and should be updated when that changes
+      // for new apps it should be the version you installed
+      // for universal apps this MUST be at least 5.6
+      compatWith: '5.6'
+    });
+  },
 });
+
+export default {
+  plugins: [
+    // babel-plugin-debug-macros is temporarily needed
+    // to convert deprecation/warn calls into console.warn
+    [
+      'babel-plugin-debug-macros',
+      {
+        flags: [],
+
+        debugTools: {
+          isDebug: true,
+          source: '@ember/debug',
+          assertPredicateIndex: 1,
+        },
+      },
+      'ember-data-specific-macros-stripping-test',
+    ],
+    ...Macros.babelMacros,
+  ],
+};
 ```
 
 ```ts [New Ember Apps]
@@ -85,18 +111,12 @@ module.exports = async function (defaults) {
 
 ## Configure the Store
 
-To get up and running we need to configure a `Store` to understand how we want
-to handle requests, what our data looks like, how to cache it, and what sort of
-reactive objects to create for that data.
+The `Store` is the central piece of the ***Warp*Drive** experience, linking
+together how we handle requests, the schemas for what our data looks like,
+how to cache it, and what sort of reactive objects to create for that data.
 
 Here's an example final configuration. Below we'll show each bit in parts and
 discuss what each does.
-
-::: tip 💡 Guide
-Looking for Legacy Adapter/Serializer Support?
-
-→ After finishing this page read the guide for [Ember.js](./2-ember.md)
-:::
 
 ::: code-group
 
@@ -435,21 +455,21 @@ Out of the box, ***Warp*Drive** provides a Cache that expects the [{JSON:API}](h
 
 ```ts
 import { Fetch, RequestManager, Store } from '@warp-drive/core';
-import { CacheHandler } from '@warp-drive/core/store'; // [!code focus:4]
-import type {
-  CacheCapabilitiesManager
-} from '@warp-drive/core/types';
 import {
   registerDerivations,
   SchemaService,
 } from '@warp-drive/core/reactive';
-import { JSONAPICache } from '@warp-drive/json-api'; // [!code focus]
+import { CacheHandler } from '@warp-drive/core/store'; // [!code focus:5]
+import type {
+  CacheCapabilitiesManager
+} from '@warp-drive/core/types';
+import { JSONAPICache } from '@warp-drive/json-api';
 
 export default class AppStore extends Store {
 
   requestManager = new RequestManager()
     .use([Fetch])
-    .useCache(CacheHandler);
+    .useCache(CacheHandler); // [!code focus:1]
 
   createSchemaService() {
     const schema = new SchemaService();
@@ -457,7 +477,7 @@ export default class AppStore extends Store {
     return schema;
   }
 
-  createCache(capabilities: CacheCapabilitiesManager) { // [!code focus:2]
+  createCache(capabilities: CacheCapabilitiesManager) { // [!code focus:3]
     return new JSONAPICache(capabilities);
   }
 }
@@ -472,7 +492,7 @@ in the cache while preventing accidental or unsafe mutation in your app.
 
 ::: code-group
 
-```ts [SchemaRecord]
+```ts [ReactiveResource]
 import { Fetch, RequestManager, Store } from '@warp-drive/core';
 import { CacheHandler } from '@warp-drive/core/store';
 import type {

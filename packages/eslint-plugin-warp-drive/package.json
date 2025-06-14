@@ -2,8 +2,8 @@
   "name": "eslint-plugin-warp-drive",
   "description": "ESLint rules for Applications using WarpDrive or EmberData",
   "main": "./src/index.js",
-  "version": "0.0.3-alpha.35",
-  "private": true,
+  "version": "5.6.0-alpha.11",
+  "private": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/emberjs/data.git",
@@ -12,8 +12,18 @@
   "volta": {
     "extends": "../../package.json"
   },
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./recommended": {
+      "default": "./src/recommended.js"
+    }
+  },
   "dependencies": {
-    "requireindex": "^1.2.0"
+    "requireindex": "^1.2.0",
+    "@warp-drive/core": "workspace:*",
+    "@warp-drive/utilities": "workspace:*"
   },
   "devDependencies": {
     "@warp-drive/internal-config": "workspace:*",

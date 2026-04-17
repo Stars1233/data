@@ -74,7 +74,15 @@ export async function executePublish(args: string[]) {
     // update all changelogs, including the primary changelog
     // and the changelogs for each package in changelogRoots
     // this will not commit the changes
-    const changedFiles = await updateChangelogs(fromTag, toTag, date, newChanges, config.full, strategy.config, packages);
+    const changedFiles = await updateChangelogs(
+      fromTag,
+      toTag,
+      date,
+      newChanges,
+      config.full,
+      strategy.config,
+      packages
+    );
 
     await confirmCommitChangelogs(changedFiles, config.full, versions);
   }

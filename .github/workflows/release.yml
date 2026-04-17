@@ -322,6 +322,7 @@ jobs:
           SHA: ${{ steps.changelog-commit.outputs.sha }}
           TARGET: ${{ steps.desired-branch.outputs.MAIN_BRANCH }}
         run: |
+          git checkout -- .
           git fetch origin $TARGET --depth=1
           git checkout -B $TARGET origin/$TARGET
           if git cherry-pick $SHA; then
@@ -345,6 +346,7 @@ jobs:
           SHA: ${{ steps.changelog-commit.outputs.sha }}
           TARGET: ${{ steps.desired-branch.outputs.BETA_BRANCH }}
         run: |
+          git checkout -- .
           git fetch origin $TARGET --depth=1
           git checkout -B $TARGET origin/$TARGET
           if git cherry-pick $SHA; then

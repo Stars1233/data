@@ -1,5 +1,4 @@
-import { Package, RawStrategyConfig, STRATEGY } from '../../../utils/package.ts';
-import { AppliedStrategy } from '../../publish/steps/generate-strategy.ts';
+import { Package, RawStrategyConfig } from '../../../utils/package.ts';
 import { Committers, Entry, LernaChangeset } from './get-changes.ts';
 import path from 'path';
 import chalk from 'chalk';

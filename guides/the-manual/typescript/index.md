@@ -1,6 +1,5 @@
 ---
 title: Overview
-order: 0
 ---
 
 # 💚 TypeScript Guide

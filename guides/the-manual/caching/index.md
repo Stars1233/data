@@ -1,8 +1,6 @@
 ---
 outline:
   level: 2,3
-categoryOrder: 2
-order: 0
 title: Overview
 ---
 
